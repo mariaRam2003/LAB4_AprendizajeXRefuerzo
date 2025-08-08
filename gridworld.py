@@ -1,6 +1,6 @@
 import gymnasium as gym
-from gym import Env
-from gym.spaces import Discrete, Tuple
+from gymnasium import Env
+from gymnasium.spaces import Discrete, Tuple
 import random
 import numpy as np
 import pprint

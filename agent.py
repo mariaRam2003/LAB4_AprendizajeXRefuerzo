@@ -177,20 +177,60 @@ class DynamicProgrammingAgent(object):
 
 
 class PolicyIterationAgent(DynamicProgrammingAgent):
-    """
-    Implementation of an agent that uses policy iteration to derive
-    the optimal policy (pi*) and state value function (v*) on the 4x4 grid world.
-
-    gamma: discount factor
-    """
     def __init__(self, gamma):
-        # Call base class constructor
         super().__init__(gamma)
 
-    def policyIterate(self):
-        ## LABORATORIO 3
-        pass 
-    
+    def policyIterate(self, theta=1e-4):
+        # Inicializar valores y política
+        V, pi = self.initSVAndPi()
+        iteration = 1
+
+        while True:
+            print(f"\n======= Iteración {iteration} =======")
+            # --- Evaluación de política ---
+            eval_steps = 0
+            while True:
+                delta = 0
+                for s in self.S:
+                    v = V[s]
+                    new_v = 0
+                    for a, action_prob in enumerate(pi[s]):
+                        for s_prime in self.S:
+                            p = s.getNextStateLikelihood(a, s_prime)
+                            new_v += action_prob * p * (s_prime.getReward() + self.gamma * V[s_prime])
+                    V[s] = new_v
+                    delta = max(delta, abs(v - new_v))
+                eval_steps += 1
+                if delta < theta:
+                    break  # convergió la evaluación
+
+            print(f"[Evaluación de política] Iteraciones internas: {eval_steps}")
+            self._printStateValues(V)
+
+            # --- Mejora de política ---
+            policy_stable, pi = self.policyImprove(pi, V)
+            self._printPolicy(pi)
+
+            if policy_stable:
+                print("✅ Política estable encontrada. Algoritmo finalizado.")
+                break
+
+            iteration += 1
+
     def policyImprove(self, pi, V):
-        ## LABORATORIO 3 
-        pass 
+        policy_stable = True
+        new_pi = {}
+
+        for s in self.S:
+            old_action = np.argmax(pi[s])
+            action_values = self.getActionValuesForState(s, V)
+
+            best_value = max(action_values)
+            best_actions = [a for a, val in enumerate(action_values) if val == best_value]
+
+            new_pi[s] = [1.0 / len(best_actions) if a in best_actions else 0.0 for a in range(self.num_actions)]
+
+            if old_action != np.argmax(new_pi[s]):
+                policy_stable = False
+
+        return policy_stable, new_pi
